@@ -1,0 +1,57 @@
+# Opens Nejat.apk on an Android 15 emulator and records whether it stays
+# open, with the crash log and screenshots. Run it from the Actions tab.
+name: Phone test
+
+on:
+  workflow_dispatch:
+    inputs:
+      apk:
+        description: 'APK file in this repository'
+        required: false
+        default: 'Nejat.apk'
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Enable hardware acceleration
+        run: |
+          ls -l /dev/kvm || echo "::warning::No /dev/kvm on this runner"
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Pick the APK
+        run: cp "${{ inputs.apk || 'Nejat.apk' }}" app.apk && ls -l app.apk
+
+      - name: Open the app on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: bash .github/scripts/phone-test.sh app.apk
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Phone test"; echo '```'; cat phone-test/android-version.txt phone-test/install.txt phone-test/alive.txt 2>/dev/null; echo '```'
+            echo "### Crash buffer"; echo '```'; head -120 phone-test/crash.txt 2>/dev/null; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          body=$( { cat phone-test/alive.txt; echo ---; head -60 phone-test/crash.txt; } 2>/dev/null | cut -c1-300 | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g' | head -c 30000)
+          echo "::notice title=phone-test::${body}"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phone-test
+          path: phone-test/
+          retention-days: 14
