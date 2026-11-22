@@ -1,0 +1,15 @@
+  bash arg: -p
+  bash arg: ir.nejat.app
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+args: [-p, ir.nejat.app, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "ir.nejat.app"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="ir.nejat.app"
+data="android.intent.category.LAUNCHER"
+Events injected: 1
+## Network stats: elapsed time=237ms (0ms mobile, 0ms wifi, 237ms not connected)
